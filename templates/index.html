@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Health Consultation</title>
+</head>
+<body>
+    <h1>Voice Health Consultation</h1>
+    <button onclick="startRecording()">Start Recording</button>
+    <p id="result">Your result will appear here...</p>
+
+    <script>
+        function startRecording() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert('Your browser does not support voice recording.');
+                return;
+            }
+
+            const recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.start();
+
+            recognition.onstart = function () {
+                document.getElementById('result').innerHTML = 'Listening...';
+            };
+
+            recognition.onresult = function (event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('result').innerHTML = `You said: ${transcript}`;
+
+                fetch('/consult', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ voice_input: transcript })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('result').innerHTML = `You said: ${transcript} <br> Health Advice: ${data.health_advice}`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = 'Error in fetching health advice.';
+                });
+            };
+
+            recognition.onerror = function (event) {
+                document.getElementById('result').innerHTML = 'Error occurred: ' + event.error;
+            };
+
+            recognition.onend = function () {
+                document.getElementById('result').innerHTML += '<br>Recording stopped.';
+            };
+        }
+    </script>
+</body>
+</html>
